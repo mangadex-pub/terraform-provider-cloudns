@@ -1,4 +1,4 @@
-package provider
+package cloudns
 
 import (
 	"regexp"
@@ -26,7 +26,7 @@ func TestAccResourceScaffolding(t *testing.T) {
 }
 
 const testAccResourceScaffolding = `
-resource "scaffolding_resource" "foo" {
-  sample_attribute = "bar"
+resource "cloudns_record" "sample" {
+  
 }
 `
