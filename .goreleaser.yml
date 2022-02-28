@@ -45,7 +45,7 @@ signs:
       # need to pass the batch flag to indicate its not interactive.
       - "--batch"
       - "--local-user"
-      - "E519187022C67F81490A0A3FF0B141B4B30671C5" # set this environment variable for your signing key
+      - "58E295EDD2CEAD0C4B7EBE17FDDE846DE7234486" # set this environment variable for your signing key
       - "--output"
       - "${signature}"
       - "--detach-sign"
