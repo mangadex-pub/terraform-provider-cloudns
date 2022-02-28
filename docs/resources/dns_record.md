@@ -15,11 +15,11 @@ A simple DNS record.
 ```terraform
 resource "cloudns_dns_record" "some-record" {
   # something.cloudns.net 600 in A 1.2.3.4
-  host        = "something"
-  domain_name = "cloudns.net"
-  ttl         = "600"
-  record_type = "A"
-  record      = "1.2.3.4"
+  name  = "something"
+  zone  = "cloudns.net"
+  type  = "A"
+  value = "1.2.3.4"
+  ttl   = "600"
 }
 ```
 
@@ -28,11 +28,11 @@ resource "cloudns_dns_record" "some-record" {
 
 ### Required
 
-- **domain_name** (String) The zone on which to add the record (eg: `something.[cloudns.net] 600 in A 1.2.3.4`)
-- **host** (String) The name of the record (eg: `[something].cloudns.net 600 in A 1.2.3.4`)
-- **record** (String) Value of the record (eg: `something.cloudns.net 600 in A [1.2.3.4]`)
-- **record_type** (String) The type of record (eg: `something.cloudns.net 600 in [A] 1.2.3.4`)
+- **name** (String) The name of the record (eg: `[something].cloudns.net 600 in A 1.2.3.4`)
 - **ttl** (Number) The TTL to assign to the record (eg: `something.cloudns.net [600] in A 1.2.3.4`)
+- **type** (String) The type of record (eg: `something.cloudns.net 600 in [A] 1.2.3.4`)
+- **value** (String) Value of the record (eg: `something.cloudns.net 600 in A [1.2.3.4]`)
+- **zone** (String) The zone on which to add the record (eg: `something.[cloudns.net] 600 in A 1.2.3.4`)
 
 ### Optional
 
