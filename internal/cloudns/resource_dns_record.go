@@ -19,8 +19,8 @@ func resourceDnsRecord() *schema.Resource {
 		UpdateContext: resourceDnsRecordUpdate,
 		DeleteContext: resourceDnsRecordDelete,
 
-		// Naming follows the scheme used by ClouDNS, despite how comically bad it is
-		// see: https://www.cloudns.net/wiki/article/58/
+		// Naming **does not** follow the scheme used by ClouDNS, due to how comically misleading and unclear it is
+		// see: https://www.cloudns.net/wiki/article/58/ for the relevant "vanilla" schema on ClouDNS side
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Description: "The name of the record (eg: `[something].cloudns.net 600 in A 1.2.3.4`)",
