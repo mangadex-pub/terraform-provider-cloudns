@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/hashicorp/terraform-provider-scaffolding/internal/cloudns"
+	"gitlab.org/mangadex-pub/terraform-provider-cloudns/internal/cloudns"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
@@ -19,22 +19,13 @@ import (
 // can be customized.
 //go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
 
-var (
-	// these will be set by the goreleaser configuration
-	// to appropriate values for the compiled binary
-	version = "local-SNAPSHOT"
-
-	// goreleaser can also pass the specific commit if you want
-	commit = "dirty"
-)
-
 func main() {
 	var debugMode bool
 
 	flag.BoolVar(&debugMode, "debug", false, "set to true to run the provider with support for debuggers like delve")
 	flag.Parse()
 
-	opts := &plugin.ServeOpts{ProviderFunc: cloudns.New(version + " (Git: " + commit + ")")}
+	opts := &plugin.ServeOpts{ProviderFunc: cloudns.New()}
 
 	if debugMode {
 		err := plugin.Debug(context.Background(), "registry.terraform.io/mangadex/cloudns", opts)

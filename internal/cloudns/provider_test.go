@@ -1,28 +1,42 @@
 package cloudns
 
 import (
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
-// providerFactories are used to instantiate a provider during acceptance testing.
-// The factory function will be invoked for every Terraform CLI command executed
-// to create a provider server to which the CLI can reattach.
+const EnvVarAcceptanceTestsZone = "CLOUDNS_ACCEPTANCE_TESTS_ZONE"
+
 var providerFactories = map[string]func() (*schema.Provider, error){
-	"scaffolding": func() (*schema.Provider, error) {
-		return New("dev")(), nil
+	"cloudns": func() (*schema.Provider, error) {
+		return New()(), nil
 	},
 }
 
-func TestProvider(t *testing.T) {
-	if err := New("dev")().InternalValidate(); err != nil {
+func TestProviderDeclaration(t *testing.T) {
+	if err := New()().InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 }
 
 func testAccPreCheck(t *testing.T) {
-	// You can add code here to run prior to any test case execution, for example assertions
-	// about the appropriate environment variables being set are common to see in a pre-check
-	// function.
+	authId := os.Getenv(EnvVarAuthId)
+	subAuthId := os.Getenv(EnvVarSubAuthId)
+	if authId == "" && subAuthId == "" {
+		t.Fatalf("One of %s or %s must be set for acceptance tests but neither were set.", EnvVarAuthId, EnvVarSubAuthId)
+	}
+
+	if len(authId) > 0 && len(subAuthId) > 0 {
+		t.Fatalf("Exactly one of %s or %s must be set for acceptance tests but both were set.", EnvVarAuthId, EnvVarSubAuthId)
+	}
+
+	if v := os.Getenv(EnvVarPassword); v == "" {
+		t.Fatalf("%s must be set for acceptance tests but it wasn't set.", EnvVarPassword)
+	}
+
+	if v := os.Getenv(EnvVarAcceptanceTestsZone); v == "" {
+		t.Fatalf("%s must be set for acceptance tests but it wasn't set.", EnvVarAcceptanceTestsZone)
+	}
 }

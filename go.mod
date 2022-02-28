@@ -1,4 +1,4 @@
-module github.com/hashicorp/terraform-provider-scaffolding
+module gitlab.org/mangadex-pub/terraform-provider-cloudns
 
 go 1.15
 
