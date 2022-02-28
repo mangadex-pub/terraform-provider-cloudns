@@ -2,6 +2,7 @@ package cloudns
 
 import (
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/sta-travel/cloudns-go"
 	"os"
@@ -16,25 +17,31 @@ func TestAccDnsARecord(t *testing.T) {
 	initialRecordValue := "1.2.3.4"
 	updatedRecordValue := "5.6.7.8"
 
+	genUuid, err := uuid.NewRandom()
+	if err != nil {
+		t.Fatal(err)
+	}
+	testUuid := genUuid.String()
+
 	initialRecord := fmt.Sprintf(`
 resource "cloudns_dns_record" "some-record" {
-  name  = "something"
+  name  = "%s"
   zone  = "%s"
   type  = "A"
   value = "%s"
   ttl   = "600"
 }
-`, testZone, initialRecordValue)
+`, testUuid, testZone, initialRecordValue)
 
 	updatedRecord := fmt.Sprintf(`
 resource "cloudns_dns_record" "some-record" {
-  name  = "something"
+  name  = "%s"
   zone  = "%s"
   type  = "A"
   value = "%s"
   ttl   = "600"
 }
-`, testZone, updatedRecordValue)
+`, testUuid, testZone, updatedRecordValue)
 	resource.UnitTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: providerFactories,
@@ -42,7 +49,7 @@ resource "cloudns_dns_record" "some-record" {
 			{
 				Config: initialRecord,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "name", "something"),
+					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "name", testUuid),
 					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "zone", testZone),
 					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "type", "A"),
 					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "value", initialRecordValue),
@@ -52,7 +59,7 @@ resource "cloudns_dns_record" "some-record" {
 			{
 				Config: updatedRecord,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "name", "something"),
+					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "name", testUuid),
 					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "zone", testZone),
 					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "type", "A"),
 					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "value", updatedRecordValue),
@@ -70,25 +77,31 @@ func TestAccDnsCNAMERecord(t *testing.T) {
 	initialRecordValue := fmt.Sprintf("target-init.%s", testZone)
 	updatedRecordValue := fmt.Sprintf("target-updated.%s", testZone)
 
+	genUuid, err := uuid.NewRandom()
+	if err != nil {
+		t.Fatal(err)
+	}
+	testUuid := genUuid.String()
+
 	initialRecord := fmt.Sprintf(`
 resource "cloudns_dns_record" "some-record" {
-  name  = "something"
+  name  = "%s"
   zone  = "%s"
   type  = "CNAME"
   value = "%s"
   ttl   = "600"
 }
-`, testZone, initialRecordValue)
+`, testUuid, testZone, initialRecordValue)
 
 	updatedRecord := fmt.Sprintf(`
 resource "cloudns_dns_record" "some-record" {
-  name  = "something"
+  name  = "%s"
   zone  = "%s"
   type  = "CNAME"
   value = "%s"
   ttl   = "600"
 }
-`, testZone, updatedRecordValue)
+`, testUuid, testZone, updatedRecordValue)
 	resource.UnitTest(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: providerFactories,
@@ -96,7 +109,7 @@ resource "cloudns_dns_record" "some-record" {
 			{
 				Config: initialRecord,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "name", "something"),
+					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "name", testUuid),
 					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "zone", testZone),
 					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "type", "CNAME"),
 					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "value", initialRecordValue),
@@ -106,7 +119,7 @@ resource "cloudns_dns_record" "some-record" {
 			{
 				Config: updatedRecord,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "name", "something"),
+					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "name", testUuid),
 					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "zone", testZone),
 					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "type", "CNAME"),
 					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "value", updatedRecordValue),
