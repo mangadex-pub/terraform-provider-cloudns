@@ -68,7 +68,7 @@ func resourceDnsRecordCreate(ctx context.Context, d *schema.ResourceData, meta i
 
 	d.SetId(recordCreated.ID)
 
-	return nil
+	return resourceDnsRecordRead(ctx, d, meta)
 }
 
 func resourceDnsRecordRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -116,12 +116,14 @@ func resourceDnsRecordUpdate(ctx context.Context, d *schema.ResourceData, meta i
 	record := toApiRecord(d)
 
 	tflog.Debug(ctx, fmt.Sprintf("UPDATE %s.%s %d in %s %s", record.Host, record.Domain, record.TTL, record.Rtype, record.Record))
-	_, err := record.Update(&config.apiAccess)
+	updated, err := record.Update(&config.apiAccess)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	return nil
+	d.SetId(updated.ID)
+
+	return resourceDnsRecordRead(ctx, d, meta)
 }
 
 func resourceDnsRecordDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -134,7 +136,7 @@ func resourceDnsRecordDelete(ctx context.Context, d *schema.ResourceData, meta i
 		return diag.FromErr(err)
 	}
 
-	return nil
+	return resourceDnsRecordRead(ctx, d, meta)
 }
 
 func toApiRecord(d *schema.ResourceData) cloudns.Record {

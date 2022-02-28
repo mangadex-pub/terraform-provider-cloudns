@@ -1,6 +1,8 @@
 package cloudns
 
 import (
+	"context"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"os"
 	"testing"
 
@@ -21,6 +23,8 @@ func TestProviderDeclaration(t *testing.T) {
 	}
 }
 
+var testAccProvider = New()()
+
 func testAccPreCheck(t *testing.T) {
 	authId := os.Getenv(EnvVarAuthId)
 	subAuthId := os.Getenv(EnvVarSubAuthId)
@@ -38,5 +42,10 @@ func testAccPreCheck(t *testing.T) {
 
 	if v := os.Getenv(EnvVarAcceptanceTestsZone); v == "" {
 		t.Fatalf("%s must be set for acceptance tests but it wasn't set.", EnvVarAcceptanceTestsZone)
+	}
+
+	err := testAccProvider.Configure(context.Background(), terraform.NewResourceConfigRaw(nil))
+	if err != nil {
+		t.Fatal(err)
 	}
 }
