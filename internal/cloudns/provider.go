@@ -2,6 +2,7 @@ package cloudns
 
 import (
 	"context"
+	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/sta-travel/cloudns-go"
@@ -22,18 +23,23 @@ func New() func() *schema.Provider {
 			"auth_id": {
 				Type:        schema.TypeInt,
 				Optional:    true,
+				Sensitive:   true,
 				DefaultFunc: schema.EnvDefaultFunc(EnvVarAuthId, nil),
+				Description: fmt.Sprintf("When using api users, this is the `auth-id`. It is read from the environment variable `%s` if not passed explicitly. Mutually exclusive with `sub_auth_id`.", EnvVarAuthId),
 			},
 			"sub_auth_id": {
 				Type:        schema.TypeInt,
 				Optional:    true,
+				Sensitive:   true,
 				DefaultFunc: schema.EnvDefaultFunc(EnvVarSubAuthId, nil),
+				Description: fmt.Sprintf("When using api sub-users, this is the `sub-auth-id`. It is read from the environment variable `%s` if not passed explicitly. Mutually exclusive with `auth_id`.", EnvVarSubAuthId),
 			},
 			"password": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				Sensitive:   true,
 				DefaultFunc: schema.EnvDefaultFunc(EnvVarPassword, nil),
+				Description: fmt.Sprintf("This is the password associated with your auth-id or sub-auth-id. It is read from the environment variable `%s` if not passed explicitly.", EnvVarPassword),
 			},
 		}
 
