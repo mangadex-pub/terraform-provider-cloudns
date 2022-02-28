@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"flag"
-	"github.com/mangadex/terraform-provider-cloudns/internal/cloudns"
+	"github.com/mangadex-pub/terraform-provider-cloudns/internal/cloudns"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
@@ -28,7 +28,7 @@ func main() {
 	opts := &plugin.ServeOpts{ProviderFunc: cloudns.New()}
 
 	if debugMode {
-		err := plugin.Debug(context.Background(), "registry.terraform.io/mangadex/cloudns", opts)
+		err := plugin.Debug(context.Background(), "registry.terraform.io/mangadex-pub/cloudns", opts)
 		if err != nil {
 			log.Fatal(err.Error())
 		}
