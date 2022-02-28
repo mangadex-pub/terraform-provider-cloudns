@@ -80,7 +80,7 @@ jobs:
           # Set whatever additional acceptance test env vars here. You can
           # optionally use data from your repository secrets using the
           # following syntax:
-          CLOUDNS_TEST_ZONE: ${{ secrets.CLOUDNS_TEST_ZONE }}
+          CLOUDNS_ACCEPTANCE_TESTS_ZONE: ${{ secrets.CLOUDNS_ACCEPTANCE_TESTS_ZONE }}
           CLOUDNS_SUB_AUTH_ID: ${{ secrets.CLOUDNS_SUB_AUTH_ID }}
           CLOUDNS_PASSWORD: ${{ secrets.CLOUDNS_PASSWORD }}
 
