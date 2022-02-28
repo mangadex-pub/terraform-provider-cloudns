@@ -1,4 +1,4 @@
-module gitlab.org/mangadex-pub/terraform-provider-cloudns
+module github.com/mangadex/terraform-provider-cloudns
 
 go 1.15
 

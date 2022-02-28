@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"flag"
-	"gitlab.org/mangadex-pub/terraform-provider-cloudns/internal/cloudns"
+	"github.com/mangadex/terraform-provider-cloudns/internal/cloudns"
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
