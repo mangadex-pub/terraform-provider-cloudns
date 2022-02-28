@@ -85,4 +85,4 @@ jobs:
           CLOUDNS_PASSWORD: ${{ secrets.CLOUDNS_PASSWORD }}
 
         run: |
-          go test -v -cover ./internal/provider/
+          go test -v -cover ./internal/cloudns/
