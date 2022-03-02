@@ -68,7 +68,8 @@ func resourceDnsRecordCreate(ctx context.Context, d *schema.ResourceData, meta i
 
 	d.SetId(recordCreated.ID)
 
-	return resourceDnsRecordRead(ctx, d, meta)
+	// do not re-read after creation to avoid potential stale caches on the underlying zone listing
+	return nil
 }
 
 func resourceDnsRecordRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -81,7 +82,14 @@ func resourceDnsRecordRead(ctx context.Context, d *schema.ResourceData, meta int
 		return diag.FromErr(err)
 	}
 
-	d.SetId(recordRead.ID)
+	expectedId := d.Id()
+
+	// If we get a record response with a mismatched ID on it, then the record was externally tampered with and
+	// another matching record exists (aside from the ID), so the underlying lib returns that (wtf)
+	if expectedId != recordRead.ID {
+		d.SetId("")
+		return nil
+	}
 
 	err = d.Set("name", recordRead.Host)
 	if err != nil {
