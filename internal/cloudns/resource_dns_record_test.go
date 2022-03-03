@@ -71,6 +71,54 @@ resource "cloudns_dns_record" "some-record" {
 	})
 }
 
+func TestAccDnsARecordMultiMatch(t *testing.T) {
+	testZone := os.Getenv(EnvVarAcceptanceTestsZone)
+
+	r1value := "1.2.3.4"
+	r2value := "5.6.7.8"
+
+	genUuid, err := uuid.NewRandom()
+	if err != nil {
+		t.Fatal(err)
+	}
+	testUuid := genUuid.String()
+
+	r1res := fmt.Sprintf(`
+resource "cloudns_dns_record" "some-record-1" {
+  name  = "%s"
+  zone  = "%s"
+  type  = "A"
+  value = "%s"
+  ttl   = "600"
+}
+`, testUuid, testZone, r1value)
+
+	r2res := fmt.Sprintf(`
+resource "cloudns_dns_record" "some-record-2" {
+  name  = "%s"
+  zone  = "%s"
+  type  = "A"
+  value = "%s"
+  ttl   = "600"
+}
+`, testUuid, testZone, r2value)
+
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf("%s\n%s", r1res, r2res),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("cloudns_dns_record.some-record-1", "value", r1value),
+					resource.TestCheckResourceAttr("cloudns_dns_record.some-record-2", "value", r2value),
+				),
+			},
+		},
+		CheckDestroy: CheckDestroyedRecords(testZone),
+	})
+}
+
 func TestAccDnsCNAMERecord(t *testing.T) {
 	testZone := os.Getenv(EnvVarAcceptanceTestsZone)
 

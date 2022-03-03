@@ -2,11 +2,14 @@ package cloudns
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/sta-travel/cloudns-go"
+	"time"
 )
 
 func resourceDnsRecord() *schema.Resource {
@@ -68,22 +71,40 @@ func resourceDnsRecordCreate(ctx context.Context, d *schema.ResourceData, meta i
 
 	d.SetId(recordCreated.ID)
 
+	timeoutErr := resource.RetryContext(ctx, 30*time.Second, func() *resource.RetryError {
+		recordRead, lookupError := resourceSimpleRead(ctx, d, meta)
+
+		if lookupError != nil {
+			return resource.NonRetryableError(*lookupError)
+		}
+
+		if recordRead == nil {
+			return resource.RetryableError(errors.New("record wasn't visible yet"))
+		}
+
+		return nil
+	})
+
+	if timeoutErr != nil {
+		return diag.FromErr(timeoutErr)
+	}
+
 	return resourceDnsRecordRead(ctx, d, meta)
 }
 
 func resourceDnsRecordRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	config := meta.(ClientConfig)
-	record := toApiRecord(d)
+	recordRead, lookupError := resourceSimpleRead(ctx, d, meta)
 
-	tflog.Debug(ctx, fmt.Sprintf("READ %s.%s %d in %s %s", record.Host, record.Domain, record.TTL, record.Rtype, record.Record))
-	recordRead, err := record.Read(&config.apiAccess)
-	if err != nil {
-		return diag.FromErr(err)
+	if lookupError != nil {
+		return diag.FromErr(*lookupError)
 	}
 
-	d.SetId(recordRead.ID)
+	if recordRead == nil {
+		d.SetId("")
+		return nil
+	}
 
-	err = d.Set("name", recordRead.Host)
+	err := d.Set("name", recordRead.Host)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -109,6 +130,26 @@ func resourceDnsRecordRead(ctx context.Context, d *schema.ResourceData, meta int
 	}
 
 	return nil
+}
+
+func resourceSimpleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) (*cloudns.Record, *error) {
+	config := meta.(ClientConfig)
+	lookup := toApiRecord(d)
+
+	tflog.Debug(ctx, fmt.Sprintf("READ %s.%s %d in %s %s", lookup.Host, lookup.Domain, lookup.TTL, lookup.Rtype, lookup.Record))
+
+	zoneRead, err := cloudns.Zone{Domain: lookup.Domain}.List(&config.apiAccess)
+	if err != nil {
+		return nil, &err
+	}
+
+	for _, record := range zoneRead {
+		if record.ID == d.Id() {
+			return &record, nil
+		}
+	}
+
+	return nil, nil
 }
 
 func resourceDnsRecordUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
