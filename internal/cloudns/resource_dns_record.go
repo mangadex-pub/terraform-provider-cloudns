@@ -2,14 +2,11 @@ package cloudns
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/sta-travel/cloudns-go"
-	"time"
 )
 
 func resourceDnsRecord() *schema.Resource {
@@ -64,6 +61,8 @@ func resourceDnsRecordCreate(ctx context.Context, d *schema.ResourceData, meta i
 	recordToCreate := toApiRecord(d)
 
 	tflog.Debug(ctx, fmt.Sprintf("CREATE %s.%s %d in %s %s", recordToCreate.Host, recordToCreate.Domain, recordToCreate.TTL, recordToCreate.Rtype, recordToCreate.Record))
+
+	clientConfig.rateLimiter.Take()
 	recordCreated, err := recordToCreate.Create(&clientConfig.apiAccess)
 	if err != nil {
 		return diag.FromErr(err)
@@ -71,85 +70,40 @@ func resourceDnsRecordCreate(ctx context.Context, d *schema.ResourceData, meta i
 
 	d.SetId(recordCreated.ID)
 
-	timeoutErr := resource.RetryContext(ctx, 30*time.Second, func() *resource.RetryError {
-		recordRead, lookupError := resourceSimpleRead(ctx, d, meta)
-
-		if lookupError != nil {
-			return resource.NonRetryableError(*lookupError)
-		}
-
-		if recordRead == nil {
-			return resource.RetryableError(errors.New("record wasn't visible yet"))
-		}
-
-		return nil
-	})
-
-	if timeoutErr != nil {
-		return diag.FromErr(timeoutErr)
-	}
-
 	return resourceDnsRecordRead(ctx, d, meta)
 }
 
 func resourceDnsRecordRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	recordRead, lookupError := resourceSimpleRead(ctx, d, meta)
-
-	if lookupError != nil {
-		return diag.FromErr(*lookupError)
-	}
-
-	if recordRead == nil {
+	if d.Id() == "" {
 		d.SetId("")
 		return nil
 	}
 
-	err := d.Set("name", recordRead.Host)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	err = d.Set("zone", recordRead.Domain)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	err = d.Set("type", recordRead.Rtype)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	err = d.Set("value", recordRead.Record)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	err = d.Set("ttl", recordRead.TTL)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
-}
-
-func resourceSimpleRead(ctx context.Context, d *schema.ResourceData, meta interface{}) (*cloudns.Record, *error) {
 	config := meta.(ClientConfig)
 	lookup := toApiRecord(d)
 
-	tflog.Debug(ctx, fmt.Sprintf("READ %s.%s %d in %s %s", lookup.Host, lookup.Domain, lookup.TTL, lookup.Rtype, lookup.Record))
+	tflog.Debug(ctx, fmt.Sprintf("READ Record#%s (%s.%s %d in %s %s)", lookup.ID, lookup.Host, lookup.Domain, lookup.TTL, lookup.Rtype, lookup.Record))
 
+	config.rateLimiter.Take()
 	zoneRead, err := cloudns.Zone{Domain: lookup.Domain}.List(&config.apiAccess)
 	if err != nil {
-		return nil, &err
+		return diag.FromErr(err)
 	}
 
-	for _, record := range zoneRead {
-		if record.ID == d.Id() {
-			return &record, nil
+	for _, zoneRecord := range zoneRead {
+		wantedId := d.Id()
+		actualId := zoneRecord.ID
+		if wantedId == actualId {
+			err = updateState(d, &zoneRecord)
+			if err != nil {
+				return diag.FromErr(err)
+			}
+			return nil
 		}
 	}
 
-	return nil, nil
+	d.SetId("")
+	return nil
 }
 
 func resourceDnsRecordUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -157,6 +111,8 @@ func resourceDnsRecordUpdate(ctx context.Context, d *schema.ResourceData, meta i
 	record := toApiRecord(d)
 
 	tflog.Debug(ctx, fmt.Sprintf("UPDATE %s.%s %d in %s %s", record.Host, record.Domain, record.TTL, record.Rtype, record.Record))
+
+	config.rateLimiter.Take()
 	updated, err := record.Update(&config.apiAccess)
 	if err != nil {
 		return diag.FromErr(err)
@@ -172,12 +128,43 @@ func resourceDnsRecordDelete(ctx context.Context, d *schema.ResourceData, meta i
 	record := toApiRecord(d)
 
 	tflog.Debug(ctx, fmt.Sprintf("DELETE %s.%s %d in %s %s", record.Host, record.Domain, record.TTL, record.Rtype, record.Record))
+
+	config.rateLimiter.Take()
 	_, err := record.Destroy(&config.apiAccess)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	return resourceDnsRecordRead(ctx, d, meta)
+}
+
+func updateState(d *schema.ResourceData, zoneRecord *cloudns.Record) error {
+	err := d.Set("name", zoneRecord.Host)
+	if err != nil {
+		return err
+	}
+
+	err = d.Set("zone", zoneRecord.Domain)
+	if err != nil {
+		return err
+	}
+
+	err = d.Set("type", zoneRecord.Rtype)
+	if err != nil {
+		return err
+	}
+
+	err = d.Set("value", zoneRecord.Record)
+	if err != nil {
+		return err
+	}
+
+	err = d.Set("ttl", zoneRecord.TTL)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func toApiRecord(d *schema.ResourceData) cloudns.Record {
