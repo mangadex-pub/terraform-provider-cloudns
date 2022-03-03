@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/sta-travel/cloudns-go"
+	"go.uber.org/ratelimit"
 )
 
 const EnvVarAuthId = "CLOUDNS_AUTH_ID"
@@ -41,6 +42,13 @@ func New() func() *schema.Provider {
 				DefaultFunc: schema.EnvDefaultFunc(EnvVarPassword, nil),
 				Description: fmt.Sprintf("This is the password associated with your auth-id or sub-auth-id. It is read from the environment variable `%s` if not passed explicitly.", EnvVarPassword),
 			},
+			"rate_limit": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Sensitive:   false,
+				Default:     5,
+				Description: fmt.Sprintf("Underlying rate limit (in API calls per second) to observe while interacting with ClouDNS. Defaults to 5 requests per second."),
+			},
 		}
 
 		p := &schema.Provider{
@@ -58,7 +66,8 @@ func New() func() *schema.Provider {
 }
 
 type ClientConfig struct {
-	apiAccess cloudns.Apiaccess
+	apiAccess   cloudns.Apiaccess
+	rateLimiter ratelimit.Limiter
 }
 
 func configure() func(context.Context, *schema.ResourceData) (interface{}, diag.Diagnostics) {
@@ -79,12 +88,15 @@ func configure() func(context.Context, *schema.ResourceData) (interface{}, diag.
 			return nil, diag.Errorf("Exactly one of auth_id or sub_auth_id must be set, but both were %s", golangSucks)
 		}
 
+		rateLimit := d.Get("rate_limit").(int)
+
 		if authId != 0 {
 			return ClientConfig{
 				apiAccess: cloudns.Apiaccess{
 					Authid:       authId,
 					Authpassword: password,
 				},
+				rateLimiter: ratelimit.New(rateLimit),
 			}, nil
 		} else {
 			return ClientConfig{
@@ -92,6 +104,7 @@ func configure() func(context.Context, *schema.ResourceData) (interface{}, diag.
 					Subauthid:    subAuthId,
 					Authpassword: password,
 				},
+				rateLimiter: ratelimit.New(rateLimit),
 			}, nil
 		}
 
