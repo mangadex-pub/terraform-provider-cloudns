@@ -28,14 +28,14 @@ resource "cloudns_dns_record" "some-record" {
 
 ### Required
 
-- **name** (String) The name of the record (eg: `[something].cloudns.net 600 in A 1.2.3.4`)
-- **ttl** (Number) The TTL to assign to the record (eg: `something.cloudns.net [600] in A 1.2.3.4`)
-- **type** (String) The type of record (eg: `something.cloudns.net 600 in [A] 1.2.3.4`)
-- **value** (String) Value of the record (eg: `something.cloudns.net 600 in A [1.2.3.4]`)
-- **zone** (String) The zone on which to add the record (eg: `something.[cloudns.net] 600 in A 1.2.3.4`)
+- `name` (String) The name of the record (eg: `[something].cloudns.net 600 in A 1.2.3.4`)
+- `ttl` (Number) The TTL to assign to the record (eg: `something.cloudns.net [600] in A 1.2.3.4`)
+- `type` (String) The type of record (eg: `something.cloudns.net 600 in [A] 1.2.3.4`)
+- `value` (String) Value of the record (eg: `something.cloudns.net 600 in A [1.2.3.4]`)
+- `zone` (String) The zone on which to add the record (eg: `something.[cloudns.net] 600 in A 1.2.3.4`)
 
 ### Optional
 
-- **id** (String) The ID of this resource.
+- `id` (String) The ID of this resource.
 
 

@@ -30,7 +30,7 @@ provider "cloudns" {
 
 ### Optional
 
-- **auth_id** (Number, Sensitive) When using api users, this is the `auth-id`. It is read from the environment variable `CLOUDNS_AUTH_ID` if not passed explicitly. Mutually exclusive with `sub_auth_id`.
-- **password** (String, Sensitive) This is the password associated with your auth-id or sub-auth-id. It is read from the environment variable `CLOUDNS_PASSWORD` if not passed explicitly.
-- **rate_limit** (Number) Underlying rate limit (in API calls per second) to observe while interacting with ClouDNS. Defaults to 5 requests per second.
-- **sub_auth_id** (Number, Sensitive) When using api sub-users, this is the `sub-auth-id`. It is read from the environment variable `CLOUDNS_SUB_AUTH_ID` if not passed explicitly. Mutually exclusive with `auth_id`.
+- `auth_id` (Number, Sensitive) When using api users, this is the `auth-id`. It is read from the environment variable `CLOUDNS_AUTH_ID` if not passed explicitly. Mutually exclusive with `sub_auth_id`.
+- `password` (String, Sensitive) This is the password associated with your auth-id or sub-auth-id. It is read from the environment variable `CLOUDNS_PASSWORD` if not passed explicitly.
+- `rate_limit` (Number) Underlying rate limit (in API calls per second) to observe while interacting with ClouDNS. Defaults to 5 requests per second.
+- `sub_auth_id` (Number, Sensitive) When using api sub-users, this is the `sub-auth-id`. It is read from the environment variable `CLOUDNS_SUB_AUTH_ID` if not passed explicitly. Mutually exclusive with `auth_id`.
