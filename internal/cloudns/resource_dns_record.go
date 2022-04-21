@@ -2,11 +2,13 @@ package cloudns
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/sta-travel/cloudns-go"
+	"strings"
 )
 
 func resourceDnsRecord() *schema.Resource {
@@ -18,6 +20,10 @@ func resourceDnsRecord() *schema.Resource {
 		ReadContext:   resourceDnsRecordRead,
 		UpdateContext: resourceDnsRecordUpdate,
 		DeleteContext: resourceDnsRecordDelete,
+
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceImportStateContext,
+		},
 
 		// Naming **does not** follow the scheme used by ClouDNS, due to how comically misleading and unclear it is
 		// see: https://www.cloudns.net/wiki/article/58/ for the relevant "vanilla" schema on ClouDNS side
@@ -87,6 +93,7 @@ func resourceDnsRecordRead(ctx context.Context, d *schema.ResourceData, meta int
 	config.rateLimiter.Take()
 	zoneRead, err := cloudns.Zone{Domain: lookup.Domain}.List(&config.apiAccess)
 	if err != nil {
+		tflog.Error(ctx, err.Error())
 		return diag.FromErr(err)
 	}
 
@@ -96,13 +103,13 @@ func resourceDnsRecordRead(ctx context.Context, d *schema.ResourceData, meta int
 		if wantedId == actualId {
 			err = updateState(d, &zoneRecord)
 			if err != nil {
+				tflog.Error(ctx, err.Error())
 				return diag.FromErr(err)
 			}
 			return nil
 		}
 	}
 
-	d.SetId("")
 	return nil
 }
 
@@ -136,6 +143,55 @@ func resourceDnsRecordDelete(ctx context.Context, d *schema.ResourceData, meta i
 	}
 
 	return resourceDnsRecordRead(ctx, d, meta)
+}
+
+func resourceImportStateContext(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	config := meta.(ClientConfig)
+	tflog.Debug(ctx, fmt.Sprintf("IMPORT ID: %#v", d.Id()))
+
+	halves := strings.Split(d.Id(), "/")
+	interestingHalf := halves[1]
+	parts := strings.Split(interestingHalf, "_")
+	if len(parts) != 3 {
+		errMsg := fmt.Sprintf("Could not extract zone from record ID: %s", d.Id())
+		tflog.Error(ctx, errMsg)
+		return nil, errors.New(errMsg)
+	}
+	zone := fmt.Sprintf("%s.%s", parts[0], parts[1])
+	wantedID := parts[2]
+
+	tflog.Debug(ctx, fmt.Sprintf("Trying to import record %s from zone: %s", wantedID, zone))
+
+	config.rateLimiter.Take()
+	zoneRead, err := cloudns.Zone{Domain: zone}.List(&config.apiAccess)
+	if err != nil {
+		return nil, err
+	}
+
+	recordFound := false
+
+	for _, zoneRecord := range zoneRead {
+		actualId := zoneRecord.ID
+		//tflog.Debug(ctx, fmt.Sprintf("wantedID: %s, actualID: %s", wantedID, actualId))
+		if wantedID == actualId {
+			err = updateState(d, &zoneRecord)
+			if err != nil {
+				tflog.Error(ctx, fmt.Sprintf("IMPORT error updateState(): %s", err))
+				return nil, err
+			}
+			tflog.Debug(ctx, fmt.Sprintf("IMPORT %s.%s %d in %s %s", zoneRecord.Host, zoneRecord.Domain, zoneRecord.TTL, zoneRecord.Rtype, zoneRecord.Record))
+			recordFound = true
+			break
+		}
+	}
+
+	if !recordFound {
+		errMsg := fmt.Sprintf("IMPORT error: could not find record with ID: %s", wantedID)
+		tflog.Error(ctx, errMsg)
+		return nil, errors.New(errMsg)
+	}
+
+	return []*schema.ResourceData{d}, nil
 }
 
 func updateState(d *schema.ResourceData, zoneRecord *cloudns.Record) error {
