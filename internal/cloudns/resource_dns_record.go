@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/sta-travel/cloudns-go"
-	"strings"
 )
 
 func resourceDnsRecord() *schema.Resource {
@@ -149,6 +150,7 @@ func resourceImportStateContext(ctx context.Context, d *schema.ResourceData, met
 	config := meta.(ClientConfig)
 	tflog.Debug(ctx, fmt.Sprintf("IMPORT ID: %#v", d.Id()))
 
+	// Extract zone name and record id
 	halves := strings.Split(d.Id(), "/")
 	interestingHalf := halves[1]
 	parts := strings.Split(interestingHalf, "_")
@@ -170,6 +172,8 @@ func resourceImportStateContext(ctx context.Context, d *schema.ResourceData, met
 
 	recordFound := false
 
+	// Try to find record by ID from the zone record list.
+	// @todo There is a more direct way to doing this with search parameters.
 	for _, zoneRecord := range zoneRead {
 		actualId := zoneRecord.ID
 		//tflog.Debug(ctx, fmt.Sprintf("wantedID: %s, actualID: %s", wantedID, actualId))
