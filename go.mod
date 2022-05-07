@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/terraform-plugin-docs v0.8.0
-	github.com/hashicorp/terraform-plugin-log v0.3.0
+	github.com/hashicorp/terraform-plugin-log v0.4.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.14.0
 	github.com/sta-travel/cloudns-go v0.0.0-20200217151626-28ac622cf3b2
 	go.uber.org/ratelimit v0.2.0
