@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/sta-travel/cloudns-go"
 	"go.uber.org/ratelimit"
+	"time"
 )
 
 const EnvVarAuthId = "CLOUDNS_AUTH_ID"
@@ -88,7 +89,12 @@ func configure() func(context.Context, *schema.ResourceData) (interface{}, diag.
 			return nil, diag.Errorf("Exactly one of auth_id or sub_auth_id must be set, but both were %s", golangSucks)
 		}
 
-		rateLimit := d.Get("rate_limit").(int)
+		rateLimiter := ratelimit.New(
+			d.Get("rate_limit").(int),
+			// while slack is a thing, we can't reliably assume it's impactful
+			ratelimit.WithoutSlack,
+			ratelimit.Per(time.Second),
+		)
 
 		if authId != 0 {
 			return ClientConfig{
@@ -96,7 +102,7 @@ func configure() func(context.Context, *schema.ResourceData) (interface{}, diag.
 					Authid:       authId,
 					Authpassword: password,
 				},
-				rateLimiter: ratelimit.New(rateLimit),
+				rateLimiter: rateLimiter,
 			}, nil
 		} else {
 			return ClientConfig{
@@ -104,7 +110,7 @@ func configure() func(context.Context, *schema.ResourceData) (interface{}, diag.
 					Subauthid:    subAuthId,
 					Authpassword: password,
 				},
-				rateLimiter: ratelimit.New(rateLimit),
+				rateLimiter: rateLimiter,
 			}, nil
 		}
 
