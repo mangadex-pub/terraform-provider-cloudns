@@ -3,11 +3,12 @@ package cloudns
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/sta-travel/cloudns-go"
+	"github.com/matschundbrei/cloudns-go"
 	"go.uber.org/ratelimit"
-	"time"
 )
 
 const EnvVarAuthId = "CLOUDNS_AUTH_ID"

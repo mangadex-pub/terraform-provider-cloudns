@@ -2,11 +2,12 @@ package cloudns
 
 import (
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/sta-travel/cloudns-go"
 	"os"
 	"testing"
+
+	"github.com/google/uuid"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/matschundbrei/cloudns-go"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
