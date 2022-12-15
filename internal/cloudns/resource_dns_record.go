@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/matschundbrei/cloudns-go"
 )
 
@@ -19,6 +20,7 @@ func resourceDnsRecord() *schema.Resource {
 		ReadContext:   resourceDnsRecordRead,
 		UpdateContext: resourceDnsRecordUpdate,
 		DeleteContext: resourceDnsRecordDelete,
+		CustomizeDiff: resourceDnsRecordValidate,
 
 		// Naming **does not** follow the scheme used by ClouDNS, due to how comically misleading and unclear it is
 		// see: https://www.cloudns.net/wiki/article/58/ for the relevant "vanilla" schema on ClouDNS side
@@ -52,6 +54,13 @@ func resourceDnsRecord() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    false,
+			},
+			"priority": {
+				Description:      "Priority for MX record (eg: `something.cloudns.net 600 in MX [10] mail.example.com`)",
+				Type:             schema.TypeInt,
+				Optional:         true,
+				ForceNew:         false,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 65535)),
 			},
 		},
 	}
@@ -139,6 +148,15 @@ func resourceDnsRecordDelete(ctx context.Context, d *schema.ResourceData, meta i
 	return resourceDnsRecordRead(ctx, d, meta)
 }
 
+func resourceDnsRecordValidate(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
+	rtype := d.Get("type").(string)
+	_, isPriorityProvided := d.GetOkExists("priority")
+	if rtype == "MX" && !isPriorityProvided {
+		return fmt.Errorf("Priority is required for MX record")
+	}
+	return nil
+}
+
 func updateState(d *schema.ResourceData, zoneRecord *cloudns.Record) error {
 	err := d.Set("name", zoneRecord.Host)
 	if err != nil {
@@ -165,6 +183,13 @@ func updateState(d *schema.ResourceData, zoneRecord *cloudns.Record) error {
 		return err
 	}
 
+	if zoneRecord.Rtype == "MX" {
+		err = d.Set("priority", zoneRecord.Priority)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -175,13 +200,18 @@ func toApiRecord(d *schema.ResourceData) cloudns.Record {
 	rtype := d.Get("type").(string)
 	value := d.Get("value").(string)
 	ttl := d.Get("ttl").(int)
+	priority := 0
+	if rtype == "MX" {
+		priority = d.Get("priority").(int)
+	}
 
 	return cloudns.Record{
-		ID:     id,
-		Host:   name,
-		Domain: zone,
-		Rtype:  rtype,
-		Record: value,
-		TTL:    ttl,
+		ID:       id,
+		Host:     name,
+		Domain:   zone,
+		Rtype:    rtype,
+		Record:   value,
+		TTL:      ttl,
+		Priority: priority,
 	}
 }

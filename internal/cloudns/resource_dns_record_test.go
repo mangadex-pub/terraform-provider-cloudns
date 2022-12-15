@@ -180,6 +180,70 @@ resource "cloudns_dns_record" "some-record" {
 	})
 }
 
+func TestAccDnsMXRecord(t *testing.T) {
+	testZone := os.Getenv(EnvVarAcceptanceTestsZone)
+
+	initialRecordValue := fmt.Sprintf("target-init.%s", testZone)
+	updatedRecordValue := fmt.Sprintf("target-updated.%s", testZone)
+
+	genUuid, err := uuid.NewRandom()
+	if err != nil {
+		t.Fatal(err)
+	}
+	testUuid := genUuid.String()
+
+	initialRecord := fmt.Sprintf(`
+resource "cloudns_dns_record" "some-record" {
+  name     = "%s"
+  zone     = "%s"
+  type     = "MX"
+  value    = "%s"
+  ttl      = "600"
+  priority = "10"
+}
+`, testUuid, testZone, initialRecordValue)
+
+	updatedRecord := fmt.Sprintf(`
+resource "cloudns_dns_record" "some-record" {
+  name     = "%s"
+  zone     = "%s"
+  type     = "MX"
+  value    = "%s"
+  ttl      = "600"
+  priority = "0"
+}
+`, testUuid, testZone, updatedRecordValue)
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: initialRecord,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "name", testUuid),
+					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "zone", testZone),
+					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "type", "MX"),
+					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "value", initialRecordValue),
+					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "ttl", "600"),
+					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "priority", "10"),
+				),
+			},
+			{
+				Config: updatedRecord,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "name", testUuid),
+					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "zone", testZone),
+					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "type", "MX"),
+					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "value", updatedRecordValue),
+					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "ttl", "600"),
+					resource.TestCheckResourceAttr("cloudns_dns_record.some-record", "priority", "0"),
+				),
+			},
+		},
+		CheckDestroy: CheckDestroyedRecords(testZone),
+	})
+}
+
 func CheckDestroyedRecords(zone string) func(state *terraform.State) error {
 	return func(state *terraform.State) error {
 		provider := testAccProvider
