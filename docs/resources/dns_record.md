@@ -34,6 +34,10 @@ resource "cloudns_dns_record" "some-record" {
 - `value` (String) Value of the record (eg: `something.cloudns.net 600 in A [1.2.3.4]`)
 - `zone` (String) The zone on which to add the record (eg: `something.[cloudns.net] 600 in A 1.2.3.4`)
 
+### Optional
+
+- `priority` (Number) Priority for MX record (eg: `something.cloudns.net 600 in MX [10] mail.example.com`)
+
 ### Read-Only
 
 - `id` (String) The ID of this resource.

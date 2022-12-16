@@ -3,7 +3,7 @@
 ## Requirements
 
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.1.x (older versions may work but are entirely untested)
-- [Go](https://golang.org/doc/install) >= 1.15
+- [Go](https://golang.org/doc/install) >= 1.19
 - [ClouDNS](https://cloudns.net) API credentials and a pre-existing DNS zone manageable by the user/sub-user associated with said credentials
 
 ## Building The Provider
