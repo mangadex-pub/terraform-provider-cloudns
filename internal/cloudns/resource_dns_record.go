@@ -3,6 +3,7 @@ package cloudns
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -21,6 +22,10 @@ func resourceDnsRecord() *schema.Resource {
 		UpdateContext: resourceDnsRecordUpdate,
 		DeleteContext: resourceDnsRecordDelete,
 		CustomizeDiff: resourceDnsRecordValidate,
+
+		Importer: &schema.ResourceImporter{
+			StateContext: resourceDnsRecordImport,
+		},
 
 		// Naming **does not** follow the scheme used by ClouDNS, due to how comically misleading and unclear it is
 		// see: https://www.cloudns.net/wiki/article/58/ for the relevant "vanilla" schema on ClouDNS side
@@ -155,6 +160,45 @@ func resourceDnsRecordValidate(ctx context.Context, d *schema.ResourceDiff, meta
 		return fmt.Errorf("Priority is required for MX record")
 	}
 	return nil
+}
+
+func resourceDnsRecordImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	config := meta.(ClientConfig)
+
+	parts := strings.Split(d.Id(), "/")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("Bad ID format: %#v. Expected: \"zone/id\"", d.Id())
+	}
+	zone := parts[0]
+	wantedId := parts[1]
+
+	config.rateLimiter.Take()
+	zoneRead, err := cloudns.Zone{Domain: zone}.List(&config.apiAccess)
+	if err != nil {
+		return nil, err
+	}
+
+	idx := -1
+	for i, zoneRecord := range zoneRead {
+		if wantedId == zoneRecord.ID {
+			idx = i
+			break
+		}
+	}
+	if idx < 0 {
+		return nil, fmt.Errorf("Record not found: %#v", wantedId)
+	}
+
+	zoneRecord := zoneRead[idx]
+	err = updateState(d, &zoneRecord)
+	if err != nil {
+		return nil, err
+	}
+	d.SetId(wantedId)
+
+	tflog.Debug(ctx, fmt.Sprintf("IMPORT %s.%s %d in %s %s", zoneRecord.Host, zoneRecord.Domain, zoneRecord.TTL, zoneRecord.Rtype, zoneRecord.Record))
+
+	return []*schema.ResourceData{d}, nil
 }
 
 func updateState(d *schema.ResourceData, zoneRecord *cloudns.Record) error {
