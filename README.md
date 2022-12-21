@@ -23,7 +23,7 @@ modules.
 
 To add a new dependency `github.com/author/dependency` to your Terraform provider:
 
-```
+```sh
 go get github.com/author/dependency
 go mod tidy
 ```
@@ -37,6 +37,32 @@ Ensure that you have an API user/sub-user on ClouDNS (requires a paid subscripti
 > Note that using a sub-user which you delegate a specific zone to is a **much** safer approach and should always be your first choice
 
 Once that is done, you must pre-create the zones you will want to manage on ClouDNS side (technically they are manageable through the API)
+
+### Import
+
+Records can be imported using:
+
+```sh
+terraform import ADDR "zone/id"
+```
+
+Example record and its import command:
+
+```hcl
+resource "cloudns_dns_record" "some-record" {
+  # ID: 123456789
+  # something.cloudns.net 600 in A 1.2.3.4
+  name  = ""
+  zone  = "something.cloudns.net"
+  type  = "A"
+  value = "1.2.3.4"
+  ttl   = "600"
+}
+```
+
+```sh
+terraform import cloudns_dns_record.some-record "something.cloudns.net/123456789"
+```
 
 ## Limitations
 
