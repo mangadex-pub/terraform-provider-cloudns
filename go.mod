@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/terraform-plugin-docs v0.13.0
-	github.com/hashicorp/terraform-plugin-log v0.7.0
+	github.com/hashicorp/terraform-plugin-log v0.8.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.24.1
 	github.com/matschundbrei/cloudns-go v0.0.2-alpha.0.20221214225745-cfd16954b6c8
 	go.uber.org/ratelimit v0.2.0
