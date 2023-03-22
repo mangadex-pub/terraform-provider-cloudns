@@ -6,7 +6,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/terraform-plugin-docs v0.14.1
 	github.com/hashicorp/terraform-plugin-log v0.8.0
-	github.com/hashicorp/terraform-plugin-sdk/v2 v2.26.0
+	github.com/hashicorp/terraform-plugin-sdk/v2 v2.26.1
 	github.com/matschundbrei/cloudns-go v0.0.3-alpha
 	go.uber.org/ratelimit v0.2.0
 )
