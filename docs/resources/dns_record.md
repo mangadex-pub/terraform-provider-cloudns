@@ -65,5 +65,3 @@ resource "cloudns_dns_record" "some-record" {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-
-
