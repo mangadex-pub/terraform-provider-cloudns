@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"github.com/matschundbrei/cloudns-go"
+	"github.com/wolframite/cloudns-go"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
@@ -22,15 +22,21 @@ resource "cloudns_dns_record" "%s" {
   value    = "%s"
   ttl      = "600"
   priority = %s
+  weight   = %s
+  port     = %s
 }
 `
 
 func record(recType string, resourceName string, name string, value string) string {
-	return fmt.Sprintf(recordTpl, resourceName, name, testZone, recType, value, "null")
+	return fmt.Sprintf(recordTpl, resourceName, name, testZone, recType, value, "null", "null", "null")
 }
 
 func mxRecord(resourceName string, name string, value string, priority string) string {
-	return fmt.Sprintf(recordTpl, resourceName, name, testZone, "MX", value, priority)
+	return fmt.Sprintf(recordTpl, resourceName, name, testZone, "MX", value, priority, "null", "null")
+}
+
+func srvRecord(resourceName string, name string, value string, priority string, weight string, port string) string {
+	return fmt.Sprintf(recordTpl, resourceName, name, testZone, "SRV", value, priority, weight, port)
 }
 
 func checkRecord(recType string, resourceName string, name string, value string) resource.TestCheckFunc {
@@ -53,6 +59,20 @@ func checkMXRecord(resourceName string, name string, value string, priority stri
 		resource.TestCheckResourceAttr(path, "value", value),
 		resource.TestCheckResourceAttr(path, "ttl", "600"),
 		resource.TestCheckResourceAttr(path, "priority", priority),
+	)
+}
+
+func checkSRVRecord(resourceName string, name string, value string, priority string, weight string, port string) resource.TestCheckFunc {
+	path := fmt.Sprintf("cloudns_dns_record.%s", resourceName)
+	return resource.ComposeTestCheckFunc(
+		resource.TestCheckResourceAttr(path, "name", name),
+		resource.TestCheckResourceAttr(path, "zone", testZone),
+		resource.TestCheckResourceAttr(path, "type", "MX"),
+		resource.TestCheckResourceAttr(path, "value", value),
+		resource.TestCheckResourceAttr(path, "ttl", "600"),
+		resource.TestCheckResourceAttr(path, "priority", priority),
+		resource.TestCheckResourceAttr(path, "weight", weight),
+		resource.TestCheckResourceAttr(path, "port", port),
 	)
 }
 
@@ -145,6 +165,28 @@ func TestAccDnsMXRecord(t *testing.T) {
 	})
 }
 
+func TestAccDnsSRVRecord(t *testing.T) {
+	testUuid := uuid.NewString()
+	initialRecordValue := fmt.Sprintf("target-init.%s", testZone)
+	updatedRecordValue := fmt.Sprintf("target-updated.%s", testZone)
+
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: srvRecord("some-record", testUuid, initialRecordValue, "0", "1", "587"),
+				Check:  checkSRVRecord("some-record", testUuid, initialRecordValue, "0", "1", "587"),
+			},
+			{
+				Config: srvRecord("some-record", testUuid, updatedRecordValue, "0", "1", "587"),
+				Check:  checkSRVRecord("some-record", testUuid, updatedRecordValue, "0", "1", "587"),
+			},
+		},
+		CheckDestroy: CheckDestroyedRecords,
+	})
+}
+
 func TestAccDnsImportMXRecord(t *testing.T) {
 	testUuid := uuid.NewString()
 
@@ -172,6 +214,50 @@ func TestAccDnsImportMXRecord(t *testing.T) {
 						"zone":     testZone,
 						"ttl":      "600",
 						"priority": "10",
+					}
+					for k, exp := range expectedState {
+						val := rs.Attributes[k]
+						if exp != val {
+							return fmt.Errorf("bad %#v: %#v expected: %#v", k, val, exp)
+						}
+					}
+					return nil
+				},
+			},
+		},
+		CheckDestroy: CheckDestroyedRecords,
+	})
+}
+
+func TestAccDnsImportSRVRecord(t *testing.T) {
+	testUuid := uuid.NewString()
+
+	resource.UnitTest(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: providerFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: srvRecord("record-to-import", testUuid, "mail.example.com", "0", "1", "587"),
+				Check:  checkSRVRecord("record-to-import", testUuid, "mail.example.com", "0", "1", "587"),
+			},
+			{
+				ResourceName:        "cloudns_dns_record.record-to-import",
+				ImportState:         true,
+				ImportStateIdPrefix: fmt.Sprintf("%s/", testZone),
+				ImportStateCheck: func(s []*terraform.InstanceState) error {
+					if len(s) != 1 {
+						return fmt.Errorf("expected single state, found: %+v", s)
+					}
+					rs := s[0]
+					expectedState := map[string]string{
+						"name":     testUuid,
+						"type":     "SRV",
+						"value":    "mail.example.com",
+						"zone":     testZone,
+						"ttl":      "600",
+						"priority": "0",
+						"weight":   "1",
+						"port":     "587",
 					}
 					for k, exp := range expectedState {
 						val := rs.Attributes[k]

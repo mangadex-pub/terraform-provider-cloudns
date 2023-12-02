@@ -3,13 +3,12 @@ package cloudns
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"github.com/matschundbrei/cloudns-go"
+	"github.com/wolframite/cloudns-go"
+	"strings"
 )
 
 func resourceDnsRecord() *schema.Resource {
@@ -62,6 +61,20 @@ func resourceDnsRecord() *schema.Resource {
 			},
 			"priority": {
 				Description:      "Priority for MX record (eg: `something.cloudns.net 600 in MX [10] mail.example.com`)",
+				Type:             schema.TypeInt,
+				Optional:         true,
+				ForceNew:         false,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 65535)),
+			},
+			"weight": {
+				Description:      "Weight for SRV record",
+				Type:             schema.TypeInt,
+				Optional:         true,
+				ForceNew:         false,
+				ValidateDiagFunc: validation.ToDiagFunc(validation.IntBetween(0, 65535)),
+			},
+			"port": {
+				Description:      "Port for SRV record",
 				Type:             schema.TypeInt,
 				Optional:         true,
 				ForceNew:         false,
@@ -156,9 +169,24 @@ func resourceDnsRecordDelete(ctx context.Context, d *schema.ResourceData, meta i
 func resourceDnsRecordValidate(ctx context.Context, d *schema.ResourceDiff, meta interface{}) error {
 	rtype := d.Get("type").(string)
 	_, isPriorityProvided := d.GetOkExists("priority")
+	_, isWeightProvided := d.GetOkExists("weight")
+	_, isPortProvided := d.GetOkExists("port")
 	if rtype == "MX" && !isPriorityProvided {
 		return fmt.Errorf("Priority is required for MX record")
 	}
+
+	if rtype == "SRV" && !isPriorityProvided {
+		return fmt.Errorf("Priority is required for MX record")
+	}
+
+	if rtype == "SRV" && !isWeightProvided {
+		return fmt.Errorf("Weight is required for MX record")
+	}
+
+	if rtype == "SRV" && !isPortProvided {
+		return fmt.Errorf("Port is required for MX record")
+	}
+
 	return nil
 }
 
@@ -227,8 +255,22 @@ func updateState(d *schema.ResourceData, zoneRecord *cloudns.Record) error {
 		return err
 	}
 
-	if zoneRecord.Rtype == "MX" {
+	if zoneRecord.Rtype == "MX" || zoneRecord.Rtype == "SRV" {
 		err = d.Set("priority", zoneRecord.Priority)
+		if err != nil {
+			return err
+		}
+	}
+
+	if zoneRecord.Rtype == "SRV" {
+		err = d.Set("weight", zoneRecord.Weight)
+		if err != nil {
+			return err
+		}
+	}
+
+	if zoneRecord.Rtype == "SRV" {
+		err = d.Set("port", zoneRecord.Port)
 		if err != nil {
 			return err
 		}
@@ -245,8 +287,16 @@ func toApiRecord(d *schema.ResourceData) cloudns.Record {
 	value := d.Get("value").(string)
 	ttl := d.Get("ttl").(int)
 	priority := 0
+	weight := 0
+	port := 0
 	if rtype == "MX" {
 		priority = d.Get("priority").(int)
+	}
+
+	if rtype == "SRV" {
+		priority = d.Get("priority").(int)
+		weight = d.Get("weight").(int)
+		port = d.Get("port").(int)
 	}
 
 	return cloudns.Record{
@@ -257,5 +307,7 @@ func toApiRecord(d *schema.ResourceData) cloudns.Record {
 		Record:   value,
 		TTL:      ttl,
 		Priority: priority,
+		Weight:   weight,
+		Port:     port,
 	}
 }
