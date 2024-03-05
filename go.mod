@@ -8,7 +8,7 @@ require (
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.29.0
 	github.com/matschundbrei/cloudns-go v0.0.4-alpha
-	go.uber.org/ratelimit v0.3.0
+	go.uber.org/ratelimit v0.3.1
 )
 
 require (
