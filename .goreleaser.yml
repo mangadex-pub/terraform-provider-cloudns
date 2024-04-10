@@ -45,7 +45,7 @@ signs:
       # need to pass the batch flag to indicate its not interactive.
       - "--batch"
       - "--local-user"
-      - "58E295EDD2CEAD0C4B7EBE17FDDE846DE7234486" # set this environment variable for your signing key
+      - "9503E1FD39903EB96AA5FC2292E15C6C32E81244" # set this environment variable for your signing key
       - "--output"
       - "${signature}"
       - "--detach-sign"
@@ -57,4 +57,4 @@ release:
   # If you want to manually examine the release before its live, uncomment this line:
   # draft: true
 changelog:
-  skip: true
+  disable: true
