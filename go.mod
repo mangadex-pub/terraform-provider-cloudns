@@ -1,14 +1,14 @@
 module github.com/mangadex-pub/terraform-provider-cloudns
 
 go 1.22
-toolchain go1.23.7
+toolchain go1.24.1
 
 require (
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/terraform-plugin-docs v0.21.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.36.1
-	github.com/matschundbrei/cloudns-go v0.0.5-alpha
+	github.com/matschundbrei/cloudns-go v0.0.6-alpha
 	go.uber.org/ratelimit v0.3.1
 )
 
