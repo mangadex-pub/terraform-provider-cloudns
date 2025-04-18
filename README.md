@@ -1,5 +1,13 @@
 # Terraform Provider ClouDNS
 
+## Maintenance notice
+
+This project should be considered purely in maintenance now that an official provider is available at https://github.com/cloudns/terraform-provider-cloudns
+
+You should migrate when you can. In the meantime we are solely merging CVE fixes with a view to archive the repository after a few more months.
+
+---
+
 ## Requirements
 
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.1.x (older versions may work but are entirely untested)
